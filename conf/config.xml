@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+	<local_port>1082</local_port>
+	<method>aes-256-cfb</method>
+	<password>ODdhMDg5MD</password>
+</config>
