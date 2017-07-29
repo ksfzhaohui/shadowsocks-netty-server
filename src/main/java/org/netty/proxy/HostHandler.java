@@ -13,12 +13,19 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.socks.SocksAddressType;
 
+/**
+ * 4次握手中的connect阶段，接受shadowsocks-netty发送给shadowsocks-netty-server的消息
+ * 
+ * 具体数据的读取可以参考类：SocksCmdRequest
+ * 
+ * @author zhaohui
+ *
+ */
 public class HostHandler extends ChannelInboundHandlerAdapter {
 
 	private static Log logger = LogFactory.getLog(HostHandler.class);
-	private final static int ADDR_TYPE_IPV4 = 1;
-	private final static int ADDR_TYPE_HOST = 3;
 	private ICrypt _crypt;
 
 	public HostHandler(Config config) {
@@ -53,7 +60,7 @@ public class HostHandler extends ChannelInboundHandlerAdapter {
 		String host = null;
 		int port = 0;
 		int addressType = dataBuff.getUnsignedByte(0);
-		if (addressType == ADDR_TYPE_IPV4) {
+		if (addressType == SocksAddressType.IPv4.byteValue()) {
 			if (dataBuff.readableBytes() < 7) {
 				return;
 			}
@@ -62,7 +69,7 @@ public class HostHandler extends ChannelInboundHandlerAdapter {
 			host = InetAddress.getByAddress(ipBytes).toString().substring(1);
 			dataBuff.readBytes(ipBytes);
 			port = dataBuff.readShort();
-		} else if (addressType == ADDR_TYPE_HOST) {
+		} else if (addressType == SocksAddressType.DOMAIN.byteValue()) {
 			int hostLength = dataBuff.getUnsignedByte(1);
 			if (dataBuff.readableBytes() < hostLength + 4) {
 				return;
@@ -76,7 +83,7 @@ public class HostHandler extends ChannelInboundHandlerAdapter {
 		} else {
 			throw new IllegalStateException("unknown address type: " + addressType);
 		}
-		logger.info("host = " + host + ",port = " + port);
+		logger.info("host = " + host + ",port = " + port + ",dataBuff = " + dataBuff.readableBytes());
 		ctx.channel().pipeline().addLast(new ClientProxyHandler(host, port, ctx, dataBuff, _crypt));
 		ctx.channel().pipeline().remove(this);
 	}
