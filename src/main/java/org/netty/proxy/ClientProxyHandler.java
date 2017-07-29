@@ -32,13 +32,11 @@ public class ClientProxyHandler extends ChannelInboundHandlerAdapter {
 	private static Log logger = LogFactory.getLog(ClientProxyHandler.class);
 	private ICrypt _crypt;
 	private AtomicReference<Channel> remoteChannel = new AtomicReference<>();
-	private ByteBuf clientCache;
 
 	public ClientProxyHandler(String host, int port, ChannelHandlerContext clientProxyChannel, ByteBuf clientCache,
 			ICrypt _crypt) {
-		this.clientCache = clientCache;
 		this._crypt = _crypt;
-		init(host, port, clientProxyChannel, _crypt);
+		init(host, port, clientProxyChannel, clientCache, _crypt);
 	}
 
 	/**
@@ -51,7 +49,7 @@ public class ClientProxyHandler extends ChannelInboundHandlerAdapter {
 	 * @param _crypt
 	 */
 	private void init(final String host, final int port, final ChannelHandlerContext clientProxyChannel,
-			final ICrypt _crypt) {
+			final ByteBuf clientCache, final ICrypt _crypt) {
 		Bootstrap bootstrap = new Bootstrap();
 		bootstrap.group(clientProxyChannel.channel().eventLoop()).channel(NioSocketChannel.class)
 				.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5 * 1000)
@@ -88,9 +86,7 @@ public class ClientProxyHandler extends ChannelInboundHandlerAdapter {
 			return;
 		}
 		byte[] decrypt = CryptUtil.decrypt(_crypt, msg);
-		if (remoteChannel.get() == null) {
-			clientCache.writeBytes(decrypt);
-		} else {
+		if (remoteChannel.get() != null) {
 			remoteChannel.get().writeAndFlush(Unpooled.copiedBuffer(decrypt));
 		}
 	}
