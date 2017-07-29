@@ -2,5 +2,5 @@
 <config>
 	<local_port>1082</local_port>
 	<method>aes-256-cfb</method>
-	<password>ODdhMDg5MD</password>
+	<password>123456</password>
 </config>
