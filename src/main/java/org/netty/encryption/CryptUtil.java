@@ -1,42 +1,65 @@
 package org.netty.encryption;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import io.netty.buffer.ByteBuf;
 
 public class CryptUtil {
 
-	public static final int BUFFER_SIZE = 16384;
-	private static ByteArrayOutputStream _remoteOutStream;
-	private static ByteArrayOutputStream _localOutStream;
-
-	static {
-		_remoteOutStream = new ByteArrayOutputStream(BUFFER_SIZE);
-		_localOutStream = new ByteArrayOutputStream(BUFFER_SIZE);
-	}
+	private static Log logger = LogFactory.getLog(CryptUtil.class);
 
 	public static byte[] encrypt(ICrypt crypt, Object msg) {
 		byte[] data = null;
-		ByteBuf bytebuff = (ByteBuf) msg;
-		if (!bytebuff.hasArray()) {
-			int len = bytebuff.readableBytes();
-			byte[] arr = new byte[len];
-			bytebuff.getBytes(0, arr);
-			crypt.encrypt(arr, arr.length, _remoteOutStream);
-			data = _remoteOutStream.toByteArray();
+		ByteArrayOutputStream _remoteOutStream = null;
+		try {
+			_remoteOutStream = new ByteArrayOutputStream();
+			ByteBuf bytebuff = (ByteBuf) msg;
+			if (!bytebuff.hasArray()) {
+				int len = bytebuff.readableBytes();
+				byte[] arr = new byte[len];
+				bytebuff.getBytes(0, arr);
+				crypt.encrypt(arr, arr.length, _remoteOutStream);
+				data = _remoteOutStream.toByteArray();
+			}
+		} catch (Exception e) {
+			logger.error("encrypt error", e);
+		} finally {
+			if (_remoteOutStream != null) {
+				try {
+					_remoteOutStream.close();
+				} catch (IOException e) {
+				}
+			}
 		}
 		return data;
 	}
 
 	public static byte[] decrypt(ICrypt crypt, Object msg) {
 		byte[] data = null;
-		ByteBuf bytebuff = (ByteBuf) msg;
-		if (!bytebuff.hasArray()) {
-			int len = bytebuff.readableBytes();
-			byte[] arr = new byte[len];
-			bytebuff.getBytes(0, arr);
-			crypt.decrypt(arr, arr.length, _localOutStream);
-			data = _localOutStream.toByteArray();
+		ByteArrayOutputStream _localOutStream = null;
+		try {
+			_localOutStream = new ByteArrayOutputStream();
+			ByteBuf bytebuff = (ByteBuf) msg;
+			if (!bytebuff.hasArray()) {
+				int len = bytebuff.readableBytes();
+				byte[] arr = new byte[len];
+				bytebuff.getBytes(0, arr);
+				crypt.decrypt(arr, arr.length, _localOutStream);
+				data = _localOutStream.toByteArray();
+			}
+		} catch (Exception e) {
+			logger.error("encrypt error", e);
+		} finally {
+			if (_localOutStream != null) {
+				try {
+					_localOutStream.close();
+				} catch (IOException e) {
+				}
+			}
 		}
 		return data;
 	}
