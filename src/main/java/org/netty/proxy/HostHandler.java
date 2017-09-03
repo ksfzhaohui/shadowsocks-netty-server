@@ -39,6 +39,7 @@ public class HostHandler extends ChannelInboundHandlerAdapter {
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
 		ctx.close();
+		logger.error("HostHandler error", cause);
 	}
 
 	@Override
@@ -52,8 +53,9 @@ public class HostHandler extends ChannelInboundHandlerAdapter {
 		if (buff.readableBytes() <= 0) {
 			return;
 		}
-		ByteBuf dataBuff = Unpooled.buffer();
-		dataBuff.writeBytes(CryptUtil.decrypt(_crypt, msg));
+		byte[] decryptBytes = CryptUtil.decrypt(_crypt, msg);
+		ByteBuf dataBuff = Unpooled.buffer(decryptBytes.length);
+		dataBuff.writeBytes(decryptBytes);
 		if (dataBuff.readableBytes() < 2) {
 			return;
 		}
