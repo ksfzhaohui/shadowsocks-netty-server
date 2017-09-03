@@ -53,9 +53,8 @@ public class HostHandler extends ChannelInboundHandlerAdapter {
 		if (buff.readableBytes() <= 0) {
 			return;
 		}
-		byte[] decryptBytes = CryptUtil.decrypt(_crypt, msg);
-		ByteBuf dataBuff = Unpooled.buffer(decryptBytes.length);
-		dataBuff.writeBytes(decryptBytes);
+		ByteBuf dataBuff = Unpooled.buffer();
+		dataBuff.writeBytes(CryptUtil.decrypt(_crypt, msg));
 		if (dataBuff.readableBytes() < 2) {
 			return;
 		}
