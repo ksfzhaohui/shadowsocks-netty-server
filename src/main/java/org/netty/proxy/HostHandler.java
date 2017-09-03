@@ -39,6 +39,7 @@ public class HostHandler extends ChannelInboundHandlerAdapter {
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
 		ctx.close();
+		logger.error("HostHandler error", cause);
 	}
 
 	@Override

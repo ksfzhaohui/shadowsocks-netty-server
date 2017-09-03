@@ -102,4 +102,14 @@ public class ClientProxyHandler extends ChannelInboundHandlerAdapter {
 			remoteChannel.get().close();
 		}
 	}
+	
+	@Override
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+		ctx.close();
+		if (remoteChannel.get() != null) {
+			remoteChannel.get().close();
+		}
+		
+		logger.error("ClientProxyHandler error", cause);
+	}
 }

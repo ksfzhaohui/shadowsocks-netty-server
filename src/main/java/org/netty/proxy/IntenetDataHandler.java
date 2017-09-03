@@ -57,5 +57,6 @@ public class IntenetDataHandler extends SimpleChannelInboundHandler<ByteBuf> {
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
 		ctx.close();
 		clientProxyChannel.close();
+		logger.error("IntenetDataHandler error", cause);
 	}
 }
