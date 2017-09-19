@@ -3,10 +3,10 @@ package org.netty.proxy;
 import java.net.InetAddress;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.netty.encryption.CryptUtil;
 import org.netty.encryption.ICrypt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -29,16 +29,18 @@ import io.netty.channel.socket.nio.NioSocketChannel;
  */
 public class ClientProxyHandler extends ChannelInboundHandlerAdapter {
 
-	private static Log logger = LogFactory.getLog(ClientProxyHandler.class);
+	private static Logger logger = LoggerFactory.getLogger(ClientProxyHandler.class);
 	private ICrypt _crypt;
 	private AtomicReference<Channel> remoteChannel = new AtomicReference<>();
 	private ByteBuf clientCache;
+	private ChannelHandlerContext clientProxyChannel;
 
 	public ClientProxyHandler(String host, int port, ChannelHandlerContext clientProxyChannel, ByteBuf clientCache,
 			ICrypt _crypt) {
 		this._crypt = _crypt;
 		this.clientCache = clientCache;
-		init(host, port, clientProxyChannel, _crypt);
+		this.clientProxyChannel = clientProxyChannel;
+		init(host, port, _crypt);
 	}
 
 	/**
@@ -50,11 +52,10 @@ public class ClientProxyHandler extends ChannelInboundHandlerAdapter {
 	 *            和代理服务器建立的连接
 	 * @param _crypt
 	 */
-	private void init(final String host, final int port, final ChannelHandlerContext clientProxyChannel,
-			final ICrypt _crypt) {
+	private void init(final String host, final int port, final ICrypt _crypt) {
 		Bootstrap bootstrap = new Bootstrap();
 		bootstrap.group(clientProxyChannel.channel().eventLoop()).channel(NioSocketChannel.class)
-				.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5 * 1000)
+				.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5 * 1000).option(ChannelOption.SO_KEEPALIVE, true)
 				.handler(new ChannelInitializer<SocketChannel>() {
 					@Override
 					protected void initChannel(SocketChannel ch) throws Exception {
@@ -62,22 +63,26 @@ public class ClientProxyHandler extends ChannelInboundHandlerAdapter {
 					}
 				});
 		try {
-			ChannelFuture channelFuture = bootstrap.connect(InetAddress.getByName(host), port);
+			final InetAddress inetAddress = InetAddress.getByName(host);
+			ChannelFuture channelFuture = bootstrap.connect(inetAddress, port);
 			channelFuture.addListener(new ChannelFutureListener() {
 				@Override
 				public void operationComplete(ChannelFuture future) throws Exception {
 					if (future.isSuccess()) {
-						logger.info("connect success host = " + host + ",port = " + port);
+						logger.debug(
+								"connect success host = " + host + ",port = " + port + ",inetAddress = " + inetAddress);
 						remoteChannel.set(future.channel());
 					} else {
-						logger.info("connect fail host = " + host + ",port = " + port);
-						clientProxyChannel.close();
+						logger.debug(
+								"connect fail host = " + host + ",port = " + port + ",inetAddress = " + inetAddress);
+						future.cancel(true);
+						channelClose();
 					}
 				}
 			});
 		} catch (Exception e) {
 			logger.error("connect intenet error", e);
-			clientProxyChannel.close();
+			channelClose();
 		}
 	}
 
@@ -89,7 +94,7 @@ public class ClientProxyHandler extends ChannelInboundHandlerAdapter {
 		}
 		byte[] decrypt = CryptUtil.decrypt(_crypt, msg);
 		if (remoteChannel.get() != null) {
-			remoteChannel.get().writeAndFlush(Unpooled.copiedBuffer(decrypt));
+			remoteChannel.get().writeAndFlush(Unpooled.wrappedBuffer(decrypt));
 		} else {
 			clientCache.writeBytes(decrypt);
 		}
@@ -98,18 +103,28 @@ public class ClientProxyHandler extends ChannelInboundHandlerAdapter {
 	@Override
 	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
 		ctx.close();
-		if (remoteChannel.get() != null) {
-			remoteChannel.get().close();
-		}
+		logger.info("ClientProxyHandler channelInactive close");
+		channelClose();
 	}
-	
+
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
 		ctx.close();
-		if (remoteChannel.get() != null) {
-			remoteChannel.get().close();
-		}
-		
+		channelClose();
 		logger.error("ClientProxyHandler error", cause);
+	}
+
+	private void channelClose() {
+		try {
+			if (remoteChannel.get() != null) {
+				remoteChannel.get().close();
+				remoteChannel = null;
+			}
+			clientProxyChannel.close();
+			clientCache.clear();
+			clientCache = null;
+		} catch (Exception e) {
+			logger.error("close channel error", e);
+		}
 	}
 }

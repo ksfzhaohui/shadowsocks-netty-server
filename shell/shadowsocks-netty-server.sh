@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
 
-java -jar shadowsocks-netty-server-0.1.0-alpha.jar &
+java -Dio.netty.maxDirectMemory=0 -Dio.netty.leakDetectionLevel=advanced -jar shadowsocks-netty-server-0.0.1.jar &

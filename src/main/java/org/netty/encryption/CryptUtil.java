@@ -3,14 +3,14 @@ package org.netty.encryption;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.netty.buffer.ByteBuf;
 
 public class CryptUtil {
 
-	private static Log logger = LogFactory.getLog(CryptUtil.class);
+	private static Logger logger = LoggerFactory.getLogger(CryptUtil.class);
 
 	public static byte[] encrypt(ICrypt crypt, Object msg) {
 		byte[] data = null;

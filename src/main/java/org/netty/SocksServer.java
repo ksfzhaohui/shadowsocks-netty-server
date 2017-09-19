@@ -1,13 +1,14 @@
 package org.netty;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.netty.config.Config;
 import org.netty.config.ConfigXmlLoader;
 import org.netty.proxy.HostHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -15,7 +16,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 public class SocksServer {
 
-	private static Log logger = LogFactory.getLog(SocksServer.class);
+	private static Logger logger = LoggerFactory.getLogger(SocksServer.class);
 
 	private static final String CONFIG = "conf/config.xml";
 
@@ -40,7 +41,7 @@ public class SocksServer {
 			workerGroup = new NioEventLoopGroup();
 			bootstrap = new ServerBootstrap();
 			bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
-					.childHandler(new ChannelInitializer<SocketChannel>() {
+					.option(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
 						@Override
 						protected void initChannel(SocketChannel socketChannel) throws Exception {
 							socketChannel.pipeline().addLast(new HostHandler(config));
